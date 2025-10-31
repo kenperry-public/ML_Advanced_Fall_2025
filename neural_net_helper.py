@@ -277,39 +277,146 @@ class Charts_Helper():
 
         return fig, ax
 
-    def tf_sequential_arch(self, ax, num_layers=5, rect_width=0.5, rect_height=1.5, spacing=1.2,
-                           # Labels
-                           fontsize=16,
-                           label_extra_vspace=0,
-                           labels=[]
-                          ):     
-        # Draw rectangles and arrows
-        for i in range(num_layers):
-            rect = plt.Rectangle((i*spacing, 0), rect_width, rect_height, color='lightgrey', edgecolor='black')
-            ax.add_patch(rect)
-
-            if i < num_layers:
-                ax.annotate('', xy=((i+1)*spacing, rect_height/2), 
-                            xytext=(i*spacing + rect_width, rect_height/2),
-                            arrowprops=dict(arrowstyle='->', connectionstyle='arc3', color='black')
-                           )
-                
-                if (i < len(labels) and len(labels[i]) > 0):
-                    label = labels[i]
-                    ax.annotate(label, xy=((i+1)*spacing, rect_height/2), 
-                                xytext=(i*spacing + rect_width/2,
-                                        - 0.1 * rect_height - label_extra_vspace
-                                        ),
-                                fontsize=fontsize
-                               )
-
-        # Set axis limits and labels
-        ax.set_xlim(-0.5, num_layers*(rect_width+spacing))  # Adjusted limit for longer rectangles
-        ax.set_ylim(0, rect_height + 0.5)
-        ax.set_aspect('equal')
-        ax.axis('off')
+    def draw_rect_2(self, fig, ax, width=0.5, height=1.5, color='lightgrey',
+              labels_in=None, labels_out=None,
+                  arrow_length=0.3, arrow_width=0.07, label_offset=0.05,
+                  visible=False):
         
-        return ax
+        # Draw the rectangle
+        rect = plt.Rectangle((0, 0), width, height, color=color, edgecolor='black')
+        _= ax.add_patch(rect)
+
+        # Process incoming arrow labels
+        if labels_in:
+            n_in = len(labels_in)
+            y_in = [height * (i + 1) / (n_in + 1) for i in range(n_in)]
+            for y, label in zip(y_in, labels_in):
+                # Draw arrow coming in from the left
+                _= ax.arrow(-arrow_length, y, arrow_length - arrow_width, 0,
+                         width=arrow_width, head_width=arrow_width*3,
+                         head_length=arrow_width*2, length_includes_head=True,
+                         color='black')
+                # Add label to the left
+                _= ax.text(-arrow_length - label_offset, y, label,
+                        ha='right', va='center')
+
+
+        # Process outgoing arrow labels, position at the arrow head
+        if labels_out:
+            n_out = len(labels_out)
+            y_out = [height * (i + 1) / (n_out + 1) for i in range(n_out)]
+            for y, label in zip(y_out, labels_out):
+                # Draw arrow going out to the right
+                _= ax.arrow(width, y, arrow_length - arrow_width, 0,
+                         width=arrow_width, head_width=arrow_width*3,
+                         head_length=arrow_width*2, length_includes_head=True,
+                         color='black')
+                # Add label just at the arrow head's end
+                _= ax.text(width + arrow_length, y, label,  # Position at arrow head
+                        ha='left', va='center')
+
+        # Preserve aspect ratio; hide axes
+        _= ax.set_aspect('equal')
+        _= ax.axis("off")
+
+        if not visible:
+            plt.close(fig)
+        
+        return fig, ax
+
+
+
+    def draw_rect(self, ax, fig=None, width=0.5, height=1.5, color='lightgrey',
+              labels_in=None, labels_out=None, label_bottom=None,
+              arrow_length=0.3, arrow_width=0.07, label_offset=0.02,
+              bottom_label_offset=0.1, visible=False):
+        
+        """
+        Draws a rectangle on the given Axes with optional incoming and outgoing arrows and labels.
+
+        Parameters:
+        - ax: matplotlib.axes.Axes
+            The axes to draw on.
+        - fig: matplotlib.figure.Figure or None, optional
+            The figure containing the axes. Required if `visible=True` to control display.
+        - width: float, default=0.5
+            Width of the rectangle.
+        - height: float, default=1.5
+            Height of the rectangle.
+        - color: str, default='lightgrey'
+            Fill color of the rectangle.
+        - labels_in: list of str or None, optional
+            Labels for arrows coming into the left side of the rectangle.
+            The number of incoming arrows equals the length of this list.
+        - labels_out: list of str or None, optional
+            Labels for arrows going out of the right side of the rectangle.
+            The number of outgoing arrows equals the length of this list.
+        - label_bottom: str or None, optional
+            Label to place centered underneath the rectangle.
+        - arrow_length: float, default=0.3
+            Horizontal length of the arrows from/to the rectangle.
+        - arrow_width: float, default=0.07
+            Width of the arrows.
+        - label_offset: float, default=0.02
+            Horizontal offset for incoming arrow labels from the arrow shaft.
+        - bottom_label_offset: float, default=0.1
+            Vertical offset below the rectangle for the bottom label.
+        - visible: bool, default=False
+            If True and `fig` is provided, displays the figure immediately.
+
+        Behavior:
+        - Draws the rectangle at (0,0) with given width and height.
+        - Draws `len(labels_in)` arrows coming into the rectangle left side, evenly spaced vertically,
+          with labels to the left of those arrows.
+        - Draws `len(labels_out)` arrows going out from the rectangle right side, evenly spaced vertically,
+          with labels placed just beyond arrow heads on the right.
+        - If `label_bottom` is provided, places this label centered beneath the rectangle.
+        - Sets equal aspect ratio and hides all axes and frame for a clean visual.
+        - Displays the figure if `visible` is True and `fig` is not None.
+        """
+        
+        # Draw the rectangle
+        rect = plt.Rectangle((0, 0), width, height, color=color, edgecolor='black')
+        ax.add_patch(rect)
+
+        # Draw incoming arrows with labels
+        if labels_in:
+            n_in = len(labels_in)
+            y_in = [height * (i + 1) / (n_in + 1) for i in range(n_in)]
+            for y, label in zip(y_in, labels_in):
+                ax.arrow(-arrow_length, y, arrow_length - arrow_width, 0,
+                         width=arrow_width, head_width=arrow_width*3,
+                         head_length=arrow_width*2, length_includes_head=True,
+                         color='black')
+                ax.text(-arrow_length - label_offset, y, label,
+                        ha='right', va='center')
+
+        # Draw outgoing arrows with labels
+        if labels_out:
+            n_out = len(labels_out)
+            y_out = [height * (i + 1) / (n_out + 1) for i in range(n_out)]
+            for y, label in zip(y_out, labels_out):
+                ax.arrow(width, y, arrow_length - arrow_width, 0,
+                         width=arrow_width, head_width=arrow_width*3,
+                         head_length=arrow_width*2, length_includes_head=True,
+                         color='black')
+                ax.text(width + arrow_length, y, label,
+                        ha='left', va='center')
+
+        # Optionally add label below rectangle
+        if label_bottom is not None:
+            ax.text(width / 2, -bottom_label_offset, label_bottom,
+                    ha='center', va='top')
+
+        # Set aspect ratio to equal and hide axes
+        _= ax.set_aspect('equal')
+        _= ax.axis('off')
+
+        # Show figure if requested
+        if not visible:
+            plt.close()
+
+        
 
     def tf_functional_arch(self, ax, num_layers=5, rect_width=0.5, rect_height=1.5, spacing=1.2):
         # Draw rectangles and arrows
@@ -779,7 +886,6 @@ class Charts_Helper():
         rect_y = (1 - fig_height) / 2
         rect_linewidth = 2
         ax.add_patch(plt.Rectangle((rect_x, rect_y), rect_width, rect_height, fill=False, color='black', linewidth=rect_linewidth))
-
         # Draw the 5 circles (twice as big)
         circle_radius = 0.02
         circle_spacing = 0.12
